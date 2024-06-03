@@ -65,9 +65,9 @@ def test_get_params_with_trial():
     assert "num_leaves" in result
 
 
-def test__get_valid_params_dct():
+def test__verify_kwargs_to_field():
     params = LightGBMParametersBase()
-    result = params._get_valid_params_dct(feature_fraction=[0.4, 1.0],
+    result = params._verify_kwargs_to_field(feature_fraction=[0.4, 1.0],
                                           foo=[1, 2], bar=[2, 3])
     assert "feature_fraction" in result.keys()
     assert "foo" not in result.keys()

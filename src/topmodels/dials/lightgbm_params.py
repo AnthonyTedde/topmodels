@@ -43,7 +43,7 @@ class LightGBMParametersBase:
 
     def update_params(self, **kwargs):
         # TODO: Consider update from after-training phase
-        kwargs = self._get_valid_params_dct(**kwargs)
+        kwargs = self._verify_kwargs_to_field(**kwargs)
         # TODO: Validate the type of the kwargs
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -56,7 +56,7 @@ class LightGBMParametersBase:
         #   * Outsource kwargs = {k: v for k, v in kwargs.items() if k in self._full_params}
         #       to -> _verify_kwargs_to_field() -> dict function
         if trial:
-            kwargs = self._get_valid_params_dct(**kwargs)
+            kwargs = self._verify_kwargs_to_field(**kwargs)
             for k, v in kwargs.items():
                 hyper_param_type = get_type_hints(self).get(k)
                 if hyper_param_type is int:
@@ -72,7 +72,7 @@ class LightGBMParametersBase:
             self.params |= {"task": "predict"}
         return self.params
 
-    def _get_valid_params_dct(self, **kwargs) -> dict:
+    def _verify_kwargs_to_field(self, **kwargs) -> dict:
         return {k: v for k, v in kwargs.items() if k in self._full_params}
 
 
