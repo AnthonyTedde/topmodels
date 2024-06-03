@@ -63,3 +63,12 @@ def test_get_params_with_trial():
     assert "feature_fraction" in result
     assert "sigmoid" in result
     assert "num_leaves" in result
+
+
+def test__get_valid_params_dct():
+    params = LightGBMParametersBase()
+    result = params._get_valid_params_dct(feature_fraction=[0.4, 1.0],
+                                          foo=[1, 2], bar=[2, 3])
+    assert "feature_fraction" in result.keys()
+    assert "foo" not in result.keys()
+    assert "bar" not in result.keys()
