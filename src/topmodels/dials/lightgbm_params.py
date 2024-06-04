@@ -6,6 +6,7 @@ from optuna.samplers import TPESampler
 import numpy as np
 from typing import List, Any, Callable, get_type_hints
 
+
 # TODO define "strategy" classes with strategies such as deep tree, longer tree, regularization ... which would use
 #   the base lightGBM classes
 
@@ -24,13 +25,10 @@ class LightGBMParametersBase:
     sigmoid: float = field(init=False)
     learning_rate: int = field(default=1e-1)
     task: str = field(default="train")
-    objective: str = field(default="multiclass")
-    num_class: int = field(default=2)
     boosting: str = field(default="gbdt")
     device_type: str = field(default="cpu")
     seed: int = field(default=1010)
     verbosity: int = field(default=0)
-    metric: List[str] = field(default_factory=lambda: ["multi_logloss", "multi_error", "auc_mu", ])
     first_metric_only: bool = field(default=True)
     data_sample_strategy: str = field(default="goss")
     boost_from_average: bool = field(default=True)
@@ -82,9 +80,20 @@ class LightGBMParametersBase:
         return {k: v for k, v in kwargs.items() if k in self._full_params}
 
 
-class LightGBMParametersClassifier(LightGBMParametersBase):
-    pass
+@dataclass
+class LightGBMParametersBinaryClassifier(LightGBMParametersBase):
+    objective: str = field(default="binary")
+    metric: List[str] = field(default_factory=lambda: ["binary_logloss", "binary_error", "auc", ])
 
 
+@dataclass
+class LightGBMParametersMulticlassClassifier(LightGBMParametersBase):
+    objective: str = field(default="multiclass")
+    num_class: int = field(init=False)
+    metric: List[str] = field(default_factory=lambda: ["multi_logloss", "multi_error", "auc_mu", ])
+
+
+@dataclass
 class LightGBMParametersRegressor(LightGBMParametersBase):
-    pass
+    objective: str = field(default="regression")
+    metric: List[str] = field(default_factory=lambda: ["rmse", "l2", "l1", ])
