@@ -44,33 +44,39 @@ class LightGBMParametersBase:
     def update_params(self, **kwargs):
         # TODO: Consider update from after-training phase
         kwargs = self._verify_kwargs_to_field(**kwargs)
-        # TODO: Validate the type of the kwargs
+        # TODO: Validate the type of the kwargs,
+        #  e.g., float, int, categorical expected
+        #  should be float, int, or categorical
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     # TODO: Push get_params up in the class hierarchy
     def get_params(self, trial=None, refit=False, **kwargs):
-        # TODO:
-        #   * Pass argument to filter parametrized hyperparameters
-        #   * Pass Kwargs to increate parametrized hyperparameters -> Add exceptions
-        #   * Outsource kwargs = {k: v for k, v in kwargs.items() if k in self._full_params}
-        #       to -> _verify_kwargs_to_field() -> dict function
+        # TODO: Change trial.suggest_* by a generic function from an "OptimizerBackendClass"
+        #   so one can use other optimizer than optuna
         if trial:
             kwargs = self._verify_kwargs_to_field(**kwargs)
             for k, v in kwargs.items():
                 hyper_param_type = get_type_hints(self).get(k)
                 if hyper_param_type is int:
-                    self.params |= {k: trial.suggest_int(k, *v)}
+                    transform_fct = trial.suggest_int
                 if hyper_param_type is float:
-                    self.params |= {k: trial.suggest_float(k, *v)}
+                    transform_fct = trial.suggest_float
                 else:
-                    # TODO: Write the other functions trial.suggest_...()
+                    transform_fct = trial.suggest_categorial
                     pass
+                if isinstance(v, list):
+                    self.params |= {k: transform_fct(k, *v)}
+                else:
+                    self.params |= {k: transform_fct(k, **v)}
         elif refit:
             self.params |= {"task": "refit"}
         else:
             self.params |= {"task": "predict"}
         return self.params
+
+    def _suggest(self, name, fct, *args, **kwargs):
+        self.params |= fct(name, *args, **kwargs)
 
     def _verify_kwargs_to_field(self, **kwargs) -> dict:
         return {k: v for k, v in kwargs.items() if k in self._full_params}

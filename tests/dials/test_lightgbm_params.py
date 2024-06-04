@@ -50,7 +50,7 @@ def test_get_params_with_refit():
     assert result["task"] == "refit"
 
 
-def test_get_params_with_trial():
+def test_get_params_with_trial_args():
     trial = Mock()
     trial.suggest_float.side_effect = [0.5, 0.1, 0.8]
     trial.suggest_int.side_effect = [128, 5]
@@ -59,6 +59,21 @@ def test_get_params_with_trial():
     result = params.get_params(trial=trial,
                                feature_fraction=[0.4, 1.0], sigmoid=[10e-4, 5.0],
                                num_leaves=[8, 256])
+
+    assert "feature_fraction" in result
+    assert "sigmoid" in result
+    assert "num_leaves" in result
+
+def test_get_params_with_trial_kwargs():
+    trial = Mock()
+    trial.suggest_float.side_effect = [0.5, 0.1, 0.8]
+    trial.suggest_int.side_effect = [128, 5]
+
+    params = LightGBMParametersBase()
+    result = params.get_params(trial=trial,
+                               feature_fraction={"low": 0.4, "high": 1.0},
+                               sigmoid={"low": 10e-4, "high": 5.0},
+                               num_leaves={"low": 8, "high": 256})
 
     assert "feature_fraction" in result
     assert "sigmoid" in result
