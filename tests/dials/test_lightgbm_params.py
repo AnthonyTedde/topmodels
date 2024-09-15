@@ -97,4 +97,3 @@ class TestLightGBMParametersRegressor:
         regressor_params = LightGBMParametersRegressor()
         assert regressor_params.params["objective"] == "regression"
         assert sorted(regressor_params.params["metric"]) == sorted(["rmse", "l2", "l1", ])
-

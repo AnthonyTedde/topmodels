@@ -1,12 +1,15 @@
 from dataclasses import dataclass, field, fields
 
+
 import fontTools.cu2qu.cu2qu
+
 from lightgbm import Dataset as LGBMDataSet
 from lightgbm import early_stopping, cv, LGBMClassifier
 import optuna
 from optuna.samplers import TPESampler
 import numpy as np
 from typing import List, Any, Callable, get_type_hints
+
 from parameters import (
     BinaryParameter,
     CategoricalParameter,
@@ -57,11 +60,13 @@ class LightGBMParametersBase:
         # TODO: Validate the type of the kwargs,
         #  e.g., float, int, categorical expected
         #  should be float, int, or categorical
+
         for k, v in kwargs.items():
             setattr(self, k, v)
 
     # TODO: Push get_params up in the class hierarchy
     def get_params(self, trial=None, refit=False, **kwargs):
+
         if trial:
             kwargs = self._verify_kwargs_to_field(**kwargs)
             for k, v in kwargs.items():
