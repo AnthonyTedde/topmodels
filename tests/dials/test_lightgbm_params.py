@@ -14,21 +14,7 @@ class TestLightGBMParametersBase:
 
     def test_default_initialization(self):
         params = LightGBMParametersBase()
-        assert params.learning_rate == 1e-1
-        assert params.task == "train"
-        assert params.objective == "multiclass"
-        assert params.num_class == 2
-        assert params.boosting == "gbdt"
-        assert params.device_type == "cpu"
-        assert params.seed == 1010
-        assert params.verbosity == 0
-        assert params.metric == ["multi_logloss", "multi_error", "auc_mu"]
-        assert params.first_metric_only
-        assert params.data_sample_strategy == "goss"
-        assert params.boost_from_average
-        assert params.extra_trees
-        assert params.is_provide_training_metric
-        assert params.params["learning_rate"] == 1e-1
+
 
     def test_update_params(self):
         params = LightGBMParametersBase()

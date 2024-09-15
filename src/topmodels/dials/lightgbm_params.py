@@ -1,10 +1,18 @@
 from dataclasses import dataclass, field, fields
+
+import fontTools.cu2qu.cu2qu
 from lightgbm import Dataset as LGBMDataSet
 from lightgbm import early_stopping, cv, LGBMClassifier
 import optuna
 from optuna.samplers import TPESampler
 import numpy as np
 from typing import List, Any, Callable, get_type_hints
+from parameters import (
+    BinaryParameter,
+    CategoricalParameter,
+    FloatingPointParameter,
+    DiscreteParameter
+)
 
 
 # TODO define "strategy" classes with strategies such as deep tree, longer tree, regularization ... which would use
@@ -13,32 +21,36 @@ from typing import List, Any, Callable, get_type_hints
 
 @dataclass
 class LightGBMParametersBase:
-    is_unbalanced: bool = field(init=False)
-    num_thread: int = field(init=False)
-    tree_learner: str = field(init=False)
-    feature_fraction: float = field(init=False)
-    sigmoid: float = field(init=False)
-    num_leaves: int = field(init=False)
-    lambda_l2: float = field(init=False)
-    min_sum_hessian: int = field(init=False)
-    bagging_fraction: float = field(init=False)
-    sigmoid: float = field(init=False)
-    learning_rate: int = field(default=1e-1)
-    task: str = field(default="train")
-    boosting: str = field(default="gbdt")
-    device_type: str = field(default="cpu")
-    seed: int = field(default=1010)
-    verbosity: int = field(default=0)
-    first_metric_only: bool = field(default=True)
-    data_sample_strategy: str = field(default="goss")
-    boost_from_average: bool = field(default=True)
-    extra_trees: bool = field(default=True)
-    is_provide_training_metric: bool = field(default=True)
+    is_unbalanced: BinaryParameter = field(init=False)
+    num_thread: DiscreteParameter = field(init=False)
+    tree_learner: CategoricalParameter = field(init=False)
+    feature_fraction: FloatingPointParameter = field(init=False)
+    sigmoid: FloatingPointParameter = field(init=False)
+    num_leaves: DiscreteParameter = field(init=False)
+    lambda_l2: FloatingPointParameter = field(init=False)
+    min_sum_hessian: DiscreteParameter = field(init=False)
+    bagging_fraction: FloatingPointParameter = field(init=False)
+    sigmoid: FloatingPointParameter = field(init=False)
+    learning_rate: FloatingPointParameter = field(default=FloatingPointParameter(1e-1))
+    task: CategoricalParameter = field(default=CategoricalParameter("train", choices=["train", "predict", "refit"]))
+    boosting: CategoricalParameter = field(default=CategoricalParameter("gbdt", choices=["gbdt", "rf", "dart"]))
+    device_type: CategoricalParameter = field(default=CategoricalParameter("cpu", choices=["cpu", "cuda"]))
+    seed: DiscreteParameter = field(default=DiscreteParameter(1010))
+    verbosity: DiscreteParameter = field(default=DiscreteParameter(0))
+    first_metric_only: BinaryParameter = field(default=BinaryParameter(True))
+    data_sample_strategy: CategoricalParameter = field(default=CategoricalParameter("goss", choices=["bagging", "goss"]))
+    boost_from_average: BinaryParameter = field(default=BinaryParameter(True))
+    extra_trees: BinaryParameter = field(default=BinaryParameter(True))
+    is_provide_training_metric: BinaryParameter = field(default=BinaryParameter(True))
 
     def __post_init__(self):
         self.params = {f.name: getattr(self, f.name) for f in fields(self) if f.name in self.__dict__.keys()}
-        self._full_params = [f.name for f in fields(self)]
+        self._parameters_names = [f.name for f in fields(self)]
 
+    def get_parameters_names(self):
+        return [f.name for f in fields(self)]
+
+    # TODO: Move `update_params` up to unspecialized method
     def update_params(self, **kwargs):
         # TODO: Consider update from after-training phase
         kwargs = self._verify_kwargs_to_field(**kwargs)
@@ -50,34 +62,20 @@ class LightGBMParametersBase:
 
     # TODO: Push get_params up in the class hierarchy
     def get_params(self, trial=None, refit=False, **kwargs):
-        # TODO: Change trial.suggest_* by a generic function from an "OptimizerBackendClass"
-        #   so one can use other optimizer than optuna
         if trial:
             kwargs = self._verify_kwargs_to_field(**kwargs)
             for k, v in kwargs.items():
-                hyper_param_type = get_type_hints(self).get(k)
-                if hyper_param_type is int:
-                    transform_fct = trial.suggest_int
-                if hyper_param_type is float:
-                    transform_fct = trial.suggest_float
-                else:
-                    transform_fct = trial.suggest_categorial
-                    pass
-                if isinstance(v, list):
-                    self.params |= {k: transform_fct(k, *v)}
-                else:
-                    self.params |= {k: transform_fct(k, **v)}
-        elif refit:
-            self.params |= {"task": "refit"}
-        else:
-            self.params |= {"task": "predict"}
+                # TODO assign attribute using **kwargs
+                setattr(self, k, v.suggest_value(trial=trial, name=k, *v))
+        # TODO: Implement the return value, but what could the function return ?
         return self.params
 
     def _suggest(self, name, fct, *args, **kwargs):
         self.params |= fct(name, *args, **kwargs)
 
     def _verify_kwargs_to_field(self, **kwargs) -> dict:
-        return {k: v for k, v in kwargs.items() if k in self._full_params}
+        parameters_names = self.get_parameters_names()
+        return {k: v for k, v in kwargs.items() if k in parameters_names}
 
 
 @dataclass
